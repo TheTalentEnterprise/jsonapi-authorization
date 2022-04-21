@@ -20,10 +20,6 @@ class Application < Rails::Application
 
   config.active_support.deprecation = :stderr
 
-  config.middleware.delete "Rack::Lock"
-  config.middleware.delete "ActionDispatch::Flash"
-  # config.middleware.delete "ActionDispatch::BestStandardsSupport"
-
   config.secret_key_base = "correct-horse-battery-staple"
 end
 

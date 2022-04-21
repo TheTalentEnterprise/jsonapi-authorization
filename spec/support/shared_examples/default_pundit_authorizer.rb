@@ -192,11 +192,14 @@ RSpec.shared_examples_for :default_pundit_authorizer do |namespace|
 
   describe '#show_related_resources' do
     subject(:method_call) do
-      -> { authorizer.show_related_resources(source_record: source_record) }
+      -> { authorizer.show_related_resources(source_record: source_record, related_record_class: User) }
     end
 
     context 'authorized for show? on record' do
-      before { allow_action(add_namespace(source_record), 'show?') }
+      before do
+        allow_action(add_namespace(source_record), 'show?')
+        allow_action(add_namespace(User), 'index?')
+      end
       it { is_expected.not_to raise_error }
     end
 

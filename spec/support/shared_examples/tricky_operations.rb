@@ -203,13 +203,12 @@ RSpec.shared_examples_for :tricky_operations do |namespace|
           [{
             relation_name: :comments,
             relation_type: :to_many,
-            # Empty array of records as they were filtered out by the policy scope
             records: []
           }]
         end
-        before { allow_operation('replace_fields', source_record: article, related_records_with_context: related_records_with_context) }
+        before { disallow_operation('replace_fields', source_record: article, related_records_with_context: related_records_with_context) }
 
-        it { is_expected.to be_successful }
+        it { is_expected.to be_not_found }
       end
     end
 

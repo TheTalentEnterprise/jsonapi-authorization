@@ -7,20 +7,20 @@ RSpec.shared_examples_for :included_resources do |namespace|
   subject { last_response }
   let(:json_included) { JSON.parse(last_response.body)['included'] }
 
-  let(:comments_policy_scope) { Comment.none }
+  let(:comments_policy_scope) { Comment.all }
   let(:article_policy_scope) { Article.all }
   let(:user_policy_scope) { User.all }
 
   before do
-    allow_any_instance_of(verify_namespace(ArticlePolicy::Scope)).to receive(:resolve).and_return(
-      article_policy_scope
-    )
-    allow_any_instance_of(verify_namespace(CommentPolicy::Scope)).to receive(:resolve).and_return(
-      comments_policy_scope
-    )
-    allow_any_instance_of(verify_namespace(UserPolicy::Scope)).to receive(:resolve).and_return(
-      user_policy_scope
-    )
+    allow_any_instance_of(ArticlePolicy::Scope).to receive(:resolve) do |policy_scope|
+      article_policy_scope.merge(policy_scope.scope.all)
+    end
+    allow_any_instance_of(CommentPolicy::Scope).to receive(:resolve) do |policy_scope|
+      comments_policy_scope.merge(policy_scope.scope.all)
+    end
+    allow_any_instance_of(UserPolicy::Scope).to receive(:resolve) do |policy_scope|
+      user_policy_scope.merge(policy_scope.scope.all)
+    end
   end
 
   before do
@@ -30,8 +30,6 @@ RSpec.shared_examples_for :included_resources do |namespace|
   shared_examples_for :include_directive_tests do
     describe 'one-level deep has_many relationship' do
       let(:include_query) { 'comments' }
-
-      let(:comments_policy_scope) { Comment.all }
 
       context 'unauthorized for include_has_many_resource for Comment' do
         before {
@@ -58,11 +56,11 @@ RSpec.shared_examples_for :included_resources do |namespace|
 
         it { is_expected.to be_successful }
 
-        let(:comments_policy_scope) { Comment.limit(1) }
-
-        it 'includes only comments allowed by policy scope' do
-          expect(json_included.length).to eq(1)
-          expect(json_included.first["id"]).to eq(comments_policy_scope.first.id.to_s)
+        it 'includes only comments allowed by policy scope and associated with the article' do
+          expect(json_included.length).to eq(article.comments.count)
+          expect(
+            json_included.map { |included| included["id"].to_i }
+          ).to match_array(article.comments.map(&:id))
         end
       end
     end
@@ -104,7 +102,6 @@ RSpec.shared_examples_for :included_resources do |namespace|
 
     describe 'multiple one-level deep relationships' do
       let(:include_query) { 'author,comments' }
-      let(:comments_policy_scope) { Comment.all }
 
       context 'unauthorized for include_has_one_resource for article.author' do
         before do
@@ -136,12 +133,12 @@ RSpec.shared_examples_for :included_resources do |namespace|
 
         it { is_expected.to be_successful }
 
-        let(:comments_policy_scope) { Comment.limit(1) }
-
         it 'includes only comments allowed by policy scope' do
           json_comments = json_included.select { |item| item['type'] == 'comments' }
-          expect(json_comments.length).to eq(comments_policy_scope.length)
-          expect(json_comments.map { |i| i['id'] }).to eq(comments_policy_scope.pluck(:id).map(&:to_s))
+          expect(json_comments.length).to eq(article.comments.count)
+          expect(
+            json_comments.map { |i| i['id'] }
+          ).to match_array(article.comments.pluck(:id).map(&:to_s))
         end
 
         it 'includes the associated author resource' do
@@ -181,20 +178,18 @@ RSpec.shared_examples_for :included_resources do |namespace|
 
           it { is_expected.to be_successful }
 
-          let(:comments_policy_scope) { Comment.all }
-
           it 'includes the first level resource' do
             json_users = json_included.select { |item| item['type'] == 'users' }
             expect(json_users).to include(a_hash_including('id' => article.author.id.to_s))
           end
 
           describe 'second level resources' do
-            let(:comments_policy_scope) { Comment.limit(1) }
-
             it 'includes only resources allowed by policy scope' do
               second_level_items = json_included.select { |item| item['type'] == 'comments' }
-              expect(second_level_items.length).to eq(comments_policy_scope.length)
-              expect(second_level_items.map { |i| i['id'] }).to eq(comments_policy_scope.pluck(:id).map(&:to_s))
+              expect(second_level_items.length).to eq(article.author.comments.count)
+              expect(
+                second_level_items.map { |i| i['id'] }
+              ).to match_array(article.author.comments.pluck(:id).map(&:to_s))
             end
           end
         end
@@ -392,7 +387,7 @@ RSpec.shared_examples_for :included_resources do |namespace|
     let(:article_policy_scope) { Article.where(id: article.id) }
 
     subject(:last_response) { get("#{namespace}/articles/#{article.external_id}/articles?include=#{include_query}") }
-    let!(:chained_authorizer) { allow_operation('show_related_resources', source_record: article) }
+    let!(:chained_authorizer) { allow_operation('show_related_resources', source_record: article, related_record_class: Article) }
 
     include_examples :include_directive_tests
   end
