@@ -3,10 +3,9 @@ module JSONAPI
     # An authorizer is a class responsible for linking JSONAPI operations to
     # your choice of authorization mechanism.
     #
-    # This class uses Pundit for authorization. It does not yet support all
-    # the available operations — you can use your own authorizer class instead
-    # if you have different needs. See the README.md for configuration
-    # information.
+    # This class uses Pundit for authorization. You can use your own authorizer
+    # class instead if you have different needs. See the README.md for
+    # configuration information.
     #
     # Fetching records is the concern of +PunditScopedResource+ which in turn
     # affects which records end up being passed here.
@@ -79,8 +78,10 @@ module JSONAPI
       # ==== Parameters
       #
       # * +source_record+ - The record whose relationship is queried
-      def show_related_resources(source_record:)
+      # * +related_record_class+ - The associated record class to show
+      def show_related_resources(source_record:, related_record_class:)
         ::Pundit.authorize(user, get_policy(source_record), 'show?')
+        ::Pundit.authorize(user, get_policy(related_record_class), 'index?')
       end
 
       # <tt>PATCH /resources/:id</tt>
