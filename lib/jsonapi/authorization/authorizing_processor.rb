@@ -279,7 +279,7 @@ module JSONAPI
       private
 
       def authorizer
-        @authorizer ||= ::JSONAPI::Authorization.configuration.authorizer.new(context: context)
+        @authorizer ||= ::JSONAPI::Authorization.configuration.authorizer.new(context: context, params: params)
       end
 
       # TODO: Communicate with upstream to fix this nasty hack

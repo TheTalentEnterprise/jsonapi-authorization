@@ -3,6 +3,7 @@ require "jsonapi/authorization/authorizing_processor"
 require "jsonapi/authorization/configuration"
 require "jsonapi/authorization/default_pundit_authorizer"
 require "jsonapi/authorization/pundit_scoped_resource"
+require "jsonapi/authorization/policy_helper"
 require "jsonapi/authorization/version"
 
 module JSONAPI
